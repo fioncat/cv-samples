@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.image as mimg
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 DATA_URL = r'http://47.101.211.243:8000/dataset/' \
            r'facial-keypoints-data.zip'
@@ -210,6 +210,21 @@ class TestDataset(FacialKeypointsDataset):
                                         transform=transform)
 
 
+def get_loader(dataset, batch_size):
+    """
+        根据dataset生成data loader. 会进行batch和随机的shuffle操作.
+
+    Args:
+        dataset: 原始数据集对象
+        batch_size:
+
+    Returns:
+        data loader
+    """
+
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+
 def normalize(sample):
     """
         图像归一化.
@@ -357,9 +372,9 @@ def show_kps(image, kps):
 def train_transform(sample):
     """
         对训练数据的预处理转换. 这个函数会进行下面这些调用:
-            1. rescale(250): 按照250对图像进行缩放
-            2. random_crop(224): 按照224对图像裁剪,
-                                 裁剪后的图像尺寸为(224, 224)
+            1. rescale(100): 按照100对图像进行缩放
+            2. random_crop(96): 按照96对图像裁剪,
+                                 裁剪后的图像尺寸为(96, 96)
             3. normalize(): 对图像进行灰度化和归一化,
                             处理后像素值在[0, 1]之间, 并且是灰度值
 
@@ -370,7 +385,8 @@ def train_transform(sample):
         转换后的样本
 
     """
-    sample = rescale(sample, 250)
-    sample = random_crop(sample, 224)
+    sample = rescale(sample, 100)
+    sample = random_crop(sample, 96)
     sample = normalize(sample)
     return to_tensor(sample)
+    # return sample
