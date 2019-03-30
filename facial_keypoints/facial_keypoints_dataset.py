@@ -99,7 +99,6 @@ def download_and_unzip_data(
                 received = 0
                 for data in response.iter_content(
                         chunk_size=chunk_size):
-
                     file.write(data)
                     received += len(data)
 
@@ -389,4 +388,170 @@ def train_transform(sample):
     sample = random_crop(sample, 96)
     sample = normalize(sample)
     return to_tensor(sample)
-    # return sample
+
+
+def train_transform_v2(sample):
+    """
+
+    Args:
+        sample:
+
+    Returns:
+
+    """
+
+    sample = rescale(sample, 250)
+    sample = random_crop(sample, 224)
+    sample = normalize(sample)
+    return to_tensor(sample)
+
+
+def test_transform(sample):
+    """
+
+    Args:
+        sample:
+
+    Returns:
+
+    """
+
+    sample = rescale(sample, (96, 96))
+    sample = normalize(sample)
+    return to_tensor(sample)
+
+
+def transform_image(image, size=(224, 224)):
+
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.resize(image, size)
+    image = image.reshape((1, 1, 224, 224))
+    image = image / 255.0
+
+    image = torch.from_numpy(image)
+    return image.type(torch.FloatTensor)
+
+
+def test_transform_v2(sample):
+    """
+
+    Args:
+        sample:
+
+    Returns:
+
+    """
+
+    sample = rescale(sample, (224, 224))
+    sample = normalize(sample)
+    return to_tensor(sample)
+
+
+def take(model,
+         loader):
+    """
+
+    Args:
+        model:
+        loader:
+
+    Returns:
+
+    """
+
+    for i, sample in enumerate(loader):
+
+        images, kps = sample['image'], sample['kps']
+        images = images.type(torch.FloatTensor)
+
+        output_pts = model(images)
+
+        if i == 0:
+            return images, \
+                output_pts.view(output_pts.size()[0], 68, -1), kps
+
+
+def i_normalize(x, is_image=True):
+    """
+
+    Args:
+        x:
+        is_image:
+
+    Returns:
+
+    """
+
+    if not type(x) == np.ndarray:
+        x = x.numpy()
+
+    if is_image:
+        x = np.transpose(x, (1, 2, 0))
+
+    else:
+        x = x * 50.0 + 100
+
+    return x
+
+
+def show_all_kps(image, predicted_kps, true_kps=None):
+    """
+
+    Args:
+        image:
+        predicted_kps:
+        true_kps:
+
+    Returns:
+
+    """
+
+    import matplotlib.pyplot as plt
+
+    plt.imshow(np.squeeze(image), cmap='gray')
+    plt.scatter(predicted_kps[:, 0], predicted_kps[:, 1],
+                s=20, marker='.', c='m')
+
+    if true_kps is not None:
+        plt.scatter(true_kps[:, 0], true_kps[:, 1],
+                    s=20, marker='.', c='g')
+
+
+def show_test(test_images,
+              test_outputs,
+              kps=None,
+              batch_size=10):
+    """
+
+    Args:
+        test_images:
+        test_outputs:
+        kps:
+        batch_size:
+
+    Returns:
+
+    """
+
+    import matplotlib.pyplot as plt
+
+    for i in range(batch_size):
+
+        plt.figure(figsize=(20, 10))
+        plt.subplot(1, batch_size, i + 1)
+
+        image = test_images[i].data
+        image = i_normalize(image)
+
+        predicted_kps = test_outputs[i].data
+        predicted_kps = i_normalize(predicted_kps, False)
+
+        true_kps = None
+        if kps is not None:
+            true_kps = i_normalize(kps[i].data, False)
+
+        show_all_kps(image, predicted_kps, true_kps)
+
+        plt.axis('off')
+
+    plt.show()
